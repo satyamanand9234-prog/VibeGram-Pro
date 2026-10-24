@@ -1,0 +1,676 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101116">
+<title>VibeGram Pro</title>
+<style>
+:root{--bg:#101116;--panel:#1b1c25;--pink:#ff4081;--line:#333746;--muted:#aaa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:white;font-family:Arial,system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#191a22;padding:13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.brand{font-size:23px;font-weight:bold;color:#ff4b85;cursor:pointer}
+main{max-width:650px;margin:auto;padding:12px 12px 100px}
+.panel,.post{background:var(--panel);border:1px solid var(--line);padding:15px;margin:12px 0;border-radius:14px;overflow-wrap:anywhere}
+button{border:0;border-radius:9px;padding:10px 12px;margin:3px;background:var(--pink);color:white;font-weight:bold;cursor:pointer}
+button:active{opacity:.7}
+.secondary{background:#303342}
+.danger{background:#8c2946}
+input,textarea{width:100%;padding:12px;margin:6px 0;background:#11131b;color:white;border:1px solid #44495a;border-radius:9px;font:inherit}
+textarea{min-height:75px}
+.hidden{display:none!important}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.avatar{width:54px;height:54px;border-radius:50%;object-fit:cover;background:#303342;border:2px solid var(--pink)}
+.post img,.post video{width:100%;max-height:500px;object-fit:contain;background:#080808;border-radius:10px;margin-top:8px}
+.actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.actions button{font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:#191a22;border-top:1px solid #444;display:flex;padding:7px 2px calc(7px + env(safe-area-inset-bottom))}
+nav button{flex:1;background:transparent;color:#ddd;font-size:12px;padding:9px 2px}
+nav button.active{background:#382332;color:#ff77a6}
+.story-list{display:flex;gap:12px;overflow:auto}
+.story{min-width:70px;text-align:center;font-size:12px;cursor:pointer}
+.story img{width:58px;height:58px;object-fit:cover;border-radius:50%;border:3px solid var(--pink)}
+#message{display:none;position:fixed;bottom:85px;left:5%;width:90%;z-index:10;background:#333746;border-radius:10px;padding:13px}
+label{font-size:13px;color:#ddd}
+</style>
+</head>
+<body>
+<header>
+  <div onclick="showPage('home')">
+    <div class="brand">▶ VibeGram Pro</div>
+    <div class="muted">आपकी दुनिया • आपकी वीडियो</div>
+  </div>
+  <button id="loginButton" onclick="showPage('login')">लॉगिन</button>
+</header>
+
+<main>
+  <div class="panel row">
+    <img id="topAvatar" class="avatar" alt="प्रोफाइल">
+    <div class="grow">
+      <b id="topName">VibeGram में स्वागत है!</b>
+      <div id="mode" class="muted">स्थानीय डेमो मोड</div>
+    </div>
+    <button class="secondary" onclick="showPage('profile')">प्रोफाइल</button>
+  </div>
+
+  <section id="page-home" class="page">
+    <div class="panel">
+      <b>स्टोरीज़ / स्टेटस</b>
+      <div class="muted">अपनी फोटो स्टोरी जोड़ें।</div>
+      <button onclick="addStory()">＋ स्टोरी जोड़ें</button>
+      <div id="stories" class="story-list"></div>
+    </div>
+
+    <div class="panel">
+      <h3>क्या नया है?</h3>
+      <textarea id="postText" placeholder="अपनी पोस्ट लिखें..."></textarea>
+      <label>फोटो या वीडियो चुनें</label>
+      <input id="postFile" type="file" accept="image/*,video/*">
+      <button onclick="publishPost()">पोस्ट शेयर करें</button>
+      <p class="muted">इस डेमो में छोटी फाइलें इस्तेमाल करें।</p>
+    </div>
+    <div id="feed"></div>
+  </section>
+
+  <section id="page-shorts" class="page hidden">
+    <h2>▶ Vibe Shorts</h2>
+    <p class="muted">यहाँ वीडियो पोस्ट दिखाई देंगी।</p>
+    <div id="shortsFeed"></div>
+    <button onclick="showPage('home')">＋ वीडियो पोस्ट करें</button>
+  </section>
+
+  <section id="page-login" class="page hidden">
+    <div class="panel">
+      <h2>लॉगिन / अकाउंट</h2>
+      <p class="muted">यह अभी डेमो लॉगिन है। असली ऑनलाइन अकाउंट नहीं।</p>
+      <input id="loginName" placeholder="आपका नाम">
+      <input id="loginEmail" type="email" placeholder="ईमेल (वैकल्पिक)">
+      <input id="loginPassword" type="password" placeholder="डेमो पासवर्ड (वैकल्पिक)">
+      <button onclick="login()">लॉगिन / अकाउंट बनाएँ</button>
+      <button class="danger" onclick="logout()">लॉगआउट</button>
+      <p id="loginMessage" class="muted"></p>
+    </div>
+  </section>
+
+  <section id="page-profile" class="page hidden">
+    <div class="panel">
+      <h2>मेरी प्रोफाइल</h2>
+      <div class="row">
+        <img id="profileAvatar" class="avatar" alt="प्रोफाइल फोटो">
+        <div class="grow">
+          <b id="profileHeading">अतिथि</b>
+          <div id="profileEmail" class="muted"></div>
+        </div>
+      </div>
+      <label>प्रोफाइल फोटो</label>
+      <input id="avatarFile" type="file" accept="image/*">
+      <label>नाम</label>
+      <input id="profileName" placeholder="आपका नाम">
+      <label>यूज़रनेम</label>
+      <input id="profileUsername" placeholder="username">
+      <label>बायो</label>
+      <textarea id="profileBio" placeholder="अपने बारे में लिखें"></textarea>
+      <button onclick="saveProfile()">प्रोफाइल सेव करें</button>
+      <p id="profileMessage" class="muted"></p>
+    </div>
+    <div class="panel">
+      <h3>मेरी पोस्ट</h3>
+      <div id="myPosts"></div>
+    </div>
+  </section>
+
+  <section id="page-alerts" class="page hidden">
+    <div class="panel">
+      <div class="row">
+        <h2 class="grow">🔔 नोटिफिकेशन</h2>
+        <button class="secondary" onclick="clearAlerts()">साफ़ करें</button>
+      </div>
+      <div id="alerts"></div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button id="nav-home" class="active" onclick="showPage('home')">⌂<br>होम</button>
+  <button id="nav-shorts" onclick="showPage('shorts')">▶<br>Shorts</button>
+  <button onclick="showPage('home');document.getElementById('postText').focus()">＋<br>पोस्ट</button>
+  <button id="nav-alerts" onclick="showPage('alerts')">♧<br>अलर्ट</button>
+  <button id="nav-profile" onclick="showPage('profile')">♙<br>प्रोफाइल</button>
+</nav>
+<div id="message" role="status"></div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const KEY = "vibegram_fixed_demo_v1";
+const blankAvatar = "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#303342"/><text x="50" y="65" font-size="45" text-anchor="middle" fill="#ff4b85">V</text></svg>'
+);
+
+let state = {user:null,posts:[],stories:[],alerts:[]};
+let currentPage = "home";
+let busy = false;
+
+function toast(text) {
+  const el = $("message");
+  el.textContent = text;
+  el.style.display = "block";
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.style.display = "none", 3000);
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+    state = {
+      user: saved.user || null,
+      posts: Array.isArray(saved.posts) ? saved.posts : [],
+      stories: Array.isArray(saved.stories) ? saved.stories : [],
+      alerts: Array.isArray(saved.alerts) ? saved.alerts : []
+    };
+  } catch (e) {
+    state = {user:null,posts:[],stories:[],alerts:[]};
+  }
+  render();
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
+  } catch (e) {
+    toast("स्टोरेज भर गया। छोटी फोटो चुनें या पुरानी पोस्ट हटाएँ।");
+    return false;
+  }
+}
+
+function userKey() {
+  return state.user ? state.user.username : "";
+}
+
+function addAlert(text) {
+  state.alerts.unshift({
+    id: Date.now() + Math.random(),
+    text,
+    time: new Date().toLocaleString("hi-IN")
+  });
+  state.alerts = state.alerts.slice(0, 40);
+}
+
+function showPage(name) {
+  const allowed = ["home","shorts","login","profile","alerts"];
+  if (!allowed.includes(name)) name = "home";
+  currentPage = name;
+
+  document.querySelectorAll(".page").forEach(el => el.classList.add("hidden"));
+  $("page-" + name).classList.remove("hidden");
+
+  ["home","shorts","alerts","profile"].forEach(n => {
+    const button = $("nav-" + n);
+    if (button) button.classList.toggle("active", n === name);
+  });
+
+  if (name === "profile") fillProfile();
+  render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function login() {
+  const name = $("loginName").value.trim();
+  const email = $("loginEmail").value.trim();
+
+  if (!name) {
+    $("loginMessage").textContent = "कृपया अपना नाम लिखें।";
+    return;
+  }
+
+  state.user = {
+    name,
+    email,
+    username: (state.user && state.user.username) ||
+      name.replace(/\s+/g,"").toLowerCase(),
+    bio: (state.user && state.user.bio) || "",
+    avatar: (state.user && state.user.avatar) || ""
+  };
+
+  addAlert("आप डेमो मोड में लॉगिन हुए।");
+  saveState();
+  $("loginMessage").textContent = "डेमो लॉगिन सफल!";
+  render();
+  showPage("profile");
+  toast("लॉगिन सफल!");
+}
+
+function logout() {
+  if (!state.user) {
+    toast("आप पहले से लॉगआउट हैं।");
+    return;
+  }
+  state.user = null;
+  saveState();
+  render();
+  showPage("home");
+  toast("लॉगआउट हो गया।");
+}
+
+function fillProfile() {
+  const u = state.user;
+  $("profileName").value = u ? (u.name || "") : "";
+  $("profileUsername").value = u ? (u.username || "") : "";
+  $("profileBio").value = u ? (u.bio || "") : "";
+  $("profileAvatar").src = u && u.avatar ? u.avatar : blankAvatar;
+  $("profileMessage").textContent = u
+    ? "अपनी जानकारी बदलकर सेव करें।"
+    : "पहले लॉगिन करें।";
+}
+
+function readFile(file) {
+  return new Promise((resolve,reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("फाइल पढ़ी नहीं जा सकी।"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveProfile() {
+  if (!state.user) {
+    toast("पहले लॉगिन करें।");
+    showPage("login");
+    return;
+  }
+  if (busy) return;
+  busy = true;
+
+  try {
+    const name = $("profileName").value.trim();
+    const username = $("profileUsername").value.trim().replace(/^@/,"");
+    const bio = $("profileBio").value.trim();
+
+    if (!name || !username) throw new Error("नाम और यूज़रनेम भरें।");
+
+    let avatar = state.user.avatar || "";
+    const file = $("avatarFile").files[0];
+
+    if (file) {
+      if (!file.type.startsWith("image/")) throw new Error("फोटो चुनें।");
+      if (file.size > 700 * 1024) {
+        throw new Error("डेमो में 700 KB से छोटी प्रोफाइल फोटो चुनें।");
+      }
+      avatar = await readFile(file);
+    }
+
+    state.user = {...state.user,name,username,bio,avatar};
+
+    state.posts.forEach(p => {
+      if (p.username === username || p.uid === username) {
+        if (p.uid === username) {
+          p.name = name;
+          p.avatar = avatar;
+        }
+      }
+    });
+
+    if (!saveState()) return;
+    render();
+    fillProfile();
+    $("profileMessage").textContent = "प्रोफाइल सेव हो गई।";
+    toast("प्रोफाइल सेव हो गई!");
+  } catch (e) {
+    toast(e.message || "प्रोफाइल सेव नहीं हुई।");
+  } finally {
+    busy = false;
+  }
+}
+
+async function publishPost() {
+  if (!state.user) {
+    toast("पोस्ट करने से पहले लॉगिन करें।");
+    showPage("login");
+    return;
+  }
+  if (busy) return;
+  busy = true;
+
+  try {
+    const text = $("postText").value.trim();
+    const file = $("postFile").files[0];
+
+    if (!text && !file) {
+      throw new Error("पोस्ट में कुछ लिखें या फोटो/वीडियो चुनें।");
+    }
+    if (file && file.size > 900 * 1024) {
+      throw new Error("डेमो के लिए 900 KB से छोटी फाइल चुनें।");
+    }
+
+    let media = "";
+    let kind = "text";
+
+    if (file) {
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        throw new Error("केवल फोटो या वीडियो चुनें।");
+      }
+      media = await readFile(file);
+      kind = file.type.startsWith("video/") ? "video" : "image";
+    }
+
+    const post = {
+      id: "p" + Date.now() + Math.random().toString(16).slice(2),
+      uid: state.user.username,
+      name: state.user.name,
+      username: state.user.username,
+      avatar: state.user.avatar || "",
+      text,
+      media,
+      kind,
+      likes: [],
+      comments: [],
+      time: new Date().toLocaleString("hi-IN")
+    };
+
+    state.posts.unshift(post);
+    addAlert("आपकी नई पोस्ट बनाई गई।");
+
+    if (!saveState()) {
+      state.posts.shift();
+      return;
+    }
+
+    $("postText").value = "";
+    $("postFile").value = "";
+    render();
+    showPage("home");
+    toast("पोस्ट शेयर हो गई!");
+  } catch (e) {
+    toast(e.message || "पोस्ट नहीं हो सकी।");
+  } finally {
+    busy = false;
+  }
+}
+
+function mediaHTML(p) {
+  if (!p.media) return "";
+  const src = escapeHTML(p.media);
+  if (p.kind === "video") {
+    return `<video controls playsinline preload="metadata" src="${src}"></video>`;
+  }
+  if (p.kind === "image") {
+    return `<img loading="lazy" src="${src}" alt="पोस्ट फोटो">`;
+  }
+  return "";
+}
+
+function postHTML(p) {
+  const liked = state.user && (p.likes || []).includes(userKey());
+  const comments = (p.comments || []).map(c =>
+    `<p><b>${escapeHTML(c.name)}:</b> ${escapeHTML(c.text)}</p>`
+  ).join("");
+
+  const deleteButton = state.user && p.uid === userKey()
+    ? `<button class="danger" onclick="deletePost('${p.id}')">हटाएँ</button>`
+    : "";
+
+  return `<article class="post">
+    <div class="row">
+      <img class="avatar" style="width:40px;height:40px"
+        src="${p.avatar || blankAvatar}" alt="">
+      <div class="grow">
+        <b>${escapeHTML(p.name)}</b>
+        <div class="muted">@${escapeHTML(p.username)}</div>
+      </div>
+    </div>
+    <p style="white-space:pre-wrap">${escapeHTML(p.text)}</p>
+    ${mediaHTML(p)}
+    <div class="muted">${escapeHTML(p.time)}</div>
+    <div class="actions">
+      <button class="secondary" onclick="toggleLike('${p.id}')">
+        ${liked ? "❤️" : "🤍"} ${(p.likes || []).length} लाइक
+      </button>
+      <button class="secondary" onclick="addComment('${p.id}')">
+        💬 कमेंट (${(p.comments || []).length})
+      </button>
+      <button class="secondary" onclick="sharePost('${p.id}')">↗ शेयर</button>
+      ${deleteButton}
+    </div>
+    <div>${comments}</div>
+  </article>`;
+}
+
+function toggleLike(id) {
+  if (!state.user) {
+    toast("लाइक करने के लिए लॉगिन करें।");
+    showPage("login");
+    return;
+  }
+  const post = state.posts.find(p => p.id === id);
+  if (!post) return;
+
+  post.likes = post.likes || [];
+  const key = userKey();
+  const index = post.likes.indexOf(key);
+
+  if (index >= 0) post.likes.splice(index,1);
+  else post.likes.push(key);
+
+  saveState();
+  render();
+}
+
+function addComment(id) {
+  if (!state.user) {
+    toast("कमेंट करने के लिए लॉगिन करें।");
+    showPage("login");
+    return;
+  }
+  const post = state.posts.find(p => p.id === id);
+  if (!post) return;
+
+  const text = prompt("अपना कमेंट लिखें:");
+  if (!text || !text.trim()) return;
+
+  post.comments = post.comments || [];
+  post.comments.push({
+    name: state.user.name,
+    text: text.trim()
+  });
+
+  saveState();
+  render();
+  toast("कमेंट जुड़ गया!");
+}
+
+async function sharePost(id) {
+  const p = state.posts.find(x => x.id === id);
+  if (!p) return;
+
+  const text = "VibeGram - " + p.name + ": " + (p.text || "पोस्ट");
+
+  try {
+    if (navigator.share) {
+      await navigator.share({title:"VibeGram पोस्ट",text});
+    } else if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      toast("पोस्ट का टेक्स्ट कॉपी हो गया।");
+    } else {
+      prompt("इस टेक्स्ट को कॉपी करें:",text);
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") prompt("पोस्ट कॉपी करें:",text);
+  }
+}
+
+function deletePost(id) {
+  const post = state.posts.find(p => p.id === id);
+  if (!post || !state.user || post.uid !== userKey()) {
+    toast("यह पोस्ट आप नहीं हटा सकते।");
+    return;
+  }
+  if (!confirm("क्या आप अपनी पोस्ट हटाना चाहते हैं?")) return;
+
+  state.posts = state.posts.filter(p => p.id !== id);
+  saveState();
+  render();
+  toast("पोस्ट हटा दी गई।");
+}
+
+async function addStory() {
+  if (!state.user) {
+    toast("स्टोरी जोड़ने के लिए लॉगिन करें।");
+    showPage("login");
+    return;
+  }
+
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/") || file.size > 500*1024) {
+      toast("500 KB से छोटी फोटो चुनें।");
+      return;
+    }
+
+    try {
+      const media = await readFile(file);
+      state.stories.unshift({
+        id:"s"+Date.now(),
+        name:state.user.name,
+        username:userKey(),
+        media,
+        time:Date.now()
+      });
+      state.stories = state.stories.filter(s =>
+        Date.now() - s.time < 24*60*60*1000
+      );
+
+      if (saveState()) {
+        render();
+        toast("स्टोरी जुड़ गई!");
+      }
+    } catch (e) {
+      toast("स्टोरी नहीं जुड़ सकी।");
+    }
+  };
+  input.click();
+}
+
+function viewStory(id) {
+  const story = state.stories.find(s => s.id === id);
+  if (!story) return;
+  const w = window.open();
+  if (!w) {
+    toast("स्टोरी देखने के लिए ब्राउज़र में पॉप-अप की अनुमति दें।");
+    return;
+  }
+  const img = w.document.createElement("img");
+  img.src = story.media;
+  img.alt = "स्टोरी";
+  img.style.cssText = "max-width:100%;max-height:95vh;display:block;margin:auto";
+  w.document.body.style.cssText = "margin:0;background:#111;text-align:center";
+  w.document.body.appendChild(img);
+}
+
+function clearAlerts() {
+  state.alerts = [];
+  saveState();
+  render();
+  toast("नोटिफिकेशन साफ़ हो गए।");
+}
+
+function render() {
+  const u = state.user;
+  $("topName").textContent = u ? u.name : "VibeGram में स्वागत है!";
+  $("loginButton").textContent = u ? "अकाउंट" : "लॉगिन";
+  $("topAvatar").src = u && u.avatar ? u.avatar : blankAvatar;
+  $("profileAvatar").src = u && u.avatar ? u.avatar : blankAvatar;
+  $("profileHeading").textContent = u ? u.name : "अतिथि";
+  $("profileEmail").textContent = u ? (u.email || "डेमो अकाउंट") : "लॉगिन नहीं है";
+
+  $("feed").innerHTML = state.posts.length
+    ? state.posts.map(postHTML).join("")
+    : '<div class="panel">अभी कोई पोस्ट नहीं है। पहली पोस्ट आप बनाएँ!</div>';
+
+  const videos = state.posts.filter(p => p.kind === "video");
+  $("shortsFeed").innerHTML = videos.length
+    ? videos.map(postHTML).join("")
+    : '<div class="panel">अभी Shorts वीडियो नहीं हैं। होम से वीडियो पोस्ट करें।</div>';
+
+  const mine = state.posts.filter(p => u && p.uid === u.username);
+  $("myPosts").innerHTML = mine.length
+    ? mine.map(postHTML).join("")
+    : '<p class="muted">आपकी पोस्ट यहाँ दिखाई देंगी।</p>';
+
+  $("stories").innerHTML = state.stories.length
+    ? state.stories.map(s => `<div class="story" onclick="viewStory('${s.id}')">
+        <img src="${s.media}" alt="स्टोरी">
+        <div>${escapeHTML(s.name)}</div>
+      </div>`).join("")
+    : '<span class="muted">अभी कोई स्टोरी नहीं है।</span>';
+
+  $("alerts").innerHTML = state.alerts.length
+    ? state.alerts.map(a => `<div class="panel">
+        ${escapeHTML(a.text)}
+        <div class="muted">${escapeHTML(a.time)}</div>
+      </div>`).join("")
+    : '<p class="muted">अभी कोई नोटिफिकेशन नहीं है।</p>';
+}
+
+/* मोबाइल और ब्राउज़र के सभी बटनों के लिए फ़ंक्शन उपलब्ध रखें */
+window.showPage = showPage;
+window.login = login;
+window.logout = logout;
+window.saveProfile = saveProfile;
+window.publishPost = publishPost;
+window.toggleLike = toggleLike;
+window.addComment = addComment;
+window.sharePost = sharePost;
+window.deletePost = deletePost;
+window.addStory = addStory;
+window.viewStory = viewStory;
+window.clearAlerts = clearAlerts;
+
+loadState();
+</script>
+</body>
+</html>
+<div id="shorts">
+  <h2>🎬 VibeGram Shorts</h2>
+  <input type="file" id="shortVideo" accept="video/*">
+  <button onclick="uploadShort()">वीडियो अपलोड करें</button>
+  <div id="shortList"></div>
+</div>
+
+<script>
+function uploadShort() {
+  const file = document.getElementById("shortVideo").files[0];
+  if (!file) {
+    alert("पहले वीडियो चुनें!");
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.src = url;
+  video.controls = true;
+  video.loop = true;
+  video.playsInline = true;
+  video.style.width = "100%";
+  video.style.maxHeight = "500px";
+
+  document.getElementById("shortList").prepend(video);
+}
+</script>
