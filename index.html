@@ -646,6 +646,104 @@ window.clearAlerts = clearAlerts;
 
 loadState();
 </script>
+  
+<section id="community">
+  <h2>🌍 VibeGram Pro — सभी की पोस्ट</h2>
+  <div id="allPosts">पोस्ट लोड हो रही हैं...</div>
+</section>
+
+<script type="module">
+import { initializeApp, getApps } from
+"https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {
+  getFirestore, collection, query, orderBy, onSnapshot
+} from
+"https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from
+"https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = getApps().length
+  ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const area = document.getElementById("allPosts");
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    area.textContent = "पोस्ट देखने के लिए पहले लॉगिन करें।";
+    return;
+  }
+
+  const postsQuery = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(postsQuery, snapshot => {
+    area.replaceChildren();
+
+    snapshot.forEach(item => {
+      const post = item.data();
+      const card = document.createElement("article");
+      card.style.cssText =
+        "padding:14px;margin:12px 0;background:#20212a;color:white;border-radius:12px";
+
+      const name = document.createElement("h3");
+      name.textContent = post.name || "यूज़र";
+
+      card.append(name);
+
+      if (post.photo) {
+        const photo = document.createElement("img");
+        photo.src = post.photo;
+        photo.alt = "प्रोफाइल फोटो";
+        photo.style.cssText =
+          "width:60px;height:60px;object-fit:cover;border-radius:50%";
+        card.append(photo);
+      }
+
+      const caption = document.createElement("p");
+      caption.textContent = post.caption || "";
+      card.append(caption);
+
+      if (post.videoUrl) {
+        const video = document.createElement("video");
+        video.src = post.videoUrl;
+        video.controls = true;
+        video.playsInline = true;
+        video.style.cssText = "width:100%;max-height:450px";
+        card.append(video);
+      }
+
+      if (post.imageUrl) {
+        const image = document.createElement("img");
+        image.src = post.imageUrl;
+        image.alt = "पोस्ट फोटो";
+        image.style.width = "100%";
+        card.append(image);
+      }
+
+      area.append(card);
+    });
+
+    if (snapshot.empty) {
+      area.textContent = "अभी कोई पोस्ट नहीं है।";
+    }
+  }, error => {
+    area.textContent = "पोस्ट लोड नहीं हुई: " + error.message;
+  });
+});
+</script>
+  
 </body>
 </html>
 <div id="shorts">
