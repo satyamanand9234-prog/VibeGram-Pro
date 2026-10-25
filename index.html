@@ -744,6 +744,71 @@ onAuthStateChanged(auth, user => {
 });
 </script>
   
+<div id="social-app">
+  <h2>📸 VibeGram Pro</h2>
+
+  <button onclick="showSocial('feed')">🏠 पोस्ट</button>
+  <button onclick="showSocial('profile')">👤 प्रोफाइल</button>
+  <button onclick="showSocial('upload')">➕ पोस्ट बनाएँ</button>
+
+  <section id="social-feed">
+    <h3>सभी पोस्ट</h3>
+    <p>ऑनलाइन पोस्ट दिखाने के लिए डेटाबेस जोड़ें।</p>
+  </section>
+
+  <section id="social-profile" hidden>
+    <h3>👤 यूज़र प्रोफाइल</h3>
+    <p>नाम, फोटो और यूज़र की पोस्ट यहाँ दिखेंगी।</p>
+  </section>
+
+  <section id="social-upload" hidden>
+    <h3>नई पोस्ट</h3>
+    <input id="social-file" type="file"
+      accept="image/*,video/*">
+    <textarea id="social-caption"
+      placeholder="कुछ लिखें..."></textarea>
+    <button onclick="previewSocialPost()">पोस्ट देखें</button>
+    <div id="social-preview"></div>
+  </section>
+</div>
+
+<script>
+function showSocial(page) {
+  ['feed', 'profile', 'upload'].forEach(name => {
+    document.getElementById('social-' + name).hidden =
+      name !== page;
+  });
+}
+
+function previewSocialPost() {
+  const file = document.getElementById('social-file').files[0];
+  const caption = document.getElementById('social-caption').value;
+  const area = document.getElementById('social-preview');
+  area.replaceChildren();
+
+  if (!file) {
+    alert('पहले फोटो या वीडियो चुनें!');
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  const media = document.createElement(
+    file.type.startsWith('video/') ? 'video' : 'img'
+  );
+
+  media.src = url;
+  if (media.tagName === 'VIDEO') {
+    media.controls = true;
+  }
+  media.style.maxWidth = '100%';
+  area.append(media);
+
+  const text = document.createElement('p');
+  text.textContent = caption;
+  area.append(text);
+}
+  </script>
+    
 </body>
 </html>
 <div id="shorts">
