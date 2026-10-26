@@ -867,6 +867,24 @@ function previewSocialPost() {
   window.vibegramSupabase = supabase;
 
   console.log('VibeGram Supabase connected');
+
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error || !data.session) return;
+
+  const user = data.session.user;
+  state.user = {
+    id: user.id,
+    name: user.user_metadata?.name || user.email?.split("@")[0] || "User",
+    email: user.email || "",
+    username: (user.email || user.id).split("@")[0].toLowerCase(),
+    bio: "",
+    avatar: ""
+  };
+
+  saveState();
+  render();
+});
+  
 </script>
   
 </body>
