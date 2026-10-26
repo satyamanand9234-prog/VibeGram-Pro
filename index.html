@@ -227,44 +227,93 @@ function showPage(name) {
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-function login() {
+
+async function login() {
   const name = $("loginName").value.trim();
   const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
 
-  if (!name) {
-    $("loginMessage").textContent = "कृपया अपना नाम लिखें।";
+  const supabase = window.vibegramSupabase;
+
+  if (!supabase) {
+    $("loginMessage").textContent = "Supabase कनेक्शन नहीं मिला।";
     return;
   }
 
-  state.user = {
-    name,
-    email,
-    username: (state.user && state.user.username) ||
-      name.replace(/\s+/g,"").toLowerCase(),
-    bio: (state.user && state.user.bio) || "",
-    avatar: (state.user && state.user.avatar) || ""
-  };
+  if (!name || !email || !password) {
+    $("loginMessage").textContent = "नाम, ईमेल और पासवर्ड भरें।";
+    return;
+  }
 
-  addAlert("आप डेमो मोड में लॉगिन हुए।");
-  saveState();
-  $("loginMessage").textContent = "डेमो लॉगिन सफल!";
-  render();
-  showPage("profile");
-  toast("लॉगिन सफल!");
+  if (password.length < 6) {
+    $("loginMessage").textContent = "पासवर्ड कम से कम 6 अक्षर का रखें।";
+    return;
+  }
+
+  try {
+    let result = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (result.error) {
+      result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
+    }
+
+    if (result.error) throw result.error;
+
+    if (!result.data.session) {
+      $("loginMessage").textContent =
+        "अकाउंट बनाया गया। ईमेल में आए लिंक से पुष्टि करें, फिर लॉगिन करें।";
+      return;
+    }
+
+    const user = result.data.user;
+
+    state.user = {
+      id: user.id,
+      name: user.user_metadata?.name || name,
+      email: user.email || email,
+      username: (user.email || email).split("@")[0].toLowerCase(),
+      bio: "",
+      avatar: ""
+    };
+
+    saveState();
+    $("loginMessage").textContent = "लॉगिन सफल!";
+    render();
+    showPage("profile");
+    toast("लॉगिन सफल!");
+  } catch (error) {
+    $("loginMessage").textContent =
+      error.message || "लॉगिन नहीं हो पाया।";
+  }
 }
 
-function logout() {
-  if (!state.user) {
-    toast("आप पहले से लॉगआउट हैं।");
-    return;
+async function logout() {
+  const supabase = window.vibegramSupabase;
+
+  if (supabase) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast("लॉगआउट नहीं हो पाया।");
+      return;
+    }
   }
+
   state.user = null;
   saveState();
   render();
   showPage("home");
   toast("लॉगआउट हो गया।");
-}
-
+  }
+  
 function fillProfile() {
   const u = state.user;
   $("profileName").value = u ? (u.name || "") : "";
@@ -813,7 +862,7 @@ function previewSocialPost() {
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
   const SUPABASE_URL = 'https://xlrklvsdidcbcrsiofiv.supabase.co';
-  const SUPABASE_KEY = sb_publishable_WPkYOOo_BV1NALk--6s_ng_48dWVYSh
+  const SUPABASE_KEY = 'sb_publishable_WPkYOOo_BV1NALk--6s_ng_48dWVYSh'
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
