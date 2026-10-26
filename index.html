@@ -88,8 +88,10 @@ label{font-size:13px;color:#ddd}
       <p class="muted">यह अभी डेमो लॉगिन है। असली ऑनलाइन अकाउंट नहीं।</p>
       <input id="loginName" placeholder="आपका नाम">
       <input id="loginEmail" type="email" placeholder="ईमेल (वैकल्पिक)">
-      <input id="loginPassword" type="password" placeholder="डेमो पासवर्ड (वैकल्पिक)">
-      <button onclick="login()">लॉगिन / अकाउंट बनाएँ</button>
+      <input id="loginPassword" type="password" placeholder="डेमो पासवर्ड (वैकल्पिक)"
+      <button onclick="login()">लॉगिन करें</button>
+      <button onclick="signup()">नया अकाउंट बनाएँ</button>
+      <button onclick="googleLogin()">Google से लॉगिन करें</button>
       <button class="danger" onclick="logout()">लॉगआउट</button>
       <p id="loginMessage" class="muted"></p>
     </div>
@@ -227,56 +229,30 @@ function showPage(name) {
 
 
 async function login() {
-  const name = $("loginName").value.trim();
   const email = $("loginEmail").value.trim();
   const password = $("loginPassword").value;
-
   const supabase = window.vibegramSupabase;
 
   if (!supabase) {
     $("loginMessage").textContent = "Supabase कनेक्शन नहीं मिला।";
     return;
   }
-
-  if (!name || !email || !password) {
-    $("loginMessage").textContent = "नाम, ईमेल और पासवर्ड भरें।";
-    return;
-  }
-
-  if (password.length < 6) {
-    $("loginMessage").textContent = "पासवर्ड कम से कम 6 अक्षर का रखें।";
+  if (!email || !password) {
+    $("loginMessage").textContent = "ईमेल और पासवर्ड भरें।";
     return;
   }
 
   try {
-    let result = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+    if (error) throw error;
 
-    if (result.error) {
-      result = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name }
-        }
-      });
-    }
-
-    if (result.error) throw result.error;
-
-    if (!result.data.session) {
-      $("loginMessage").textContent =
-        "अकाउंट बनाया गया। ईमेल में आए लिंक से पुष्टि करें, फिर लॉगिन करें।";
-      return;
-    }
-
-    const user = result.data.user;
-
+    const user = data.user;
     state.user = {
       id: user.id,
-      name: user.user_metadata?.name || name,
+      name: user.user_metadata?.name || user.email.split("@")[0],
       email: user.email || email,
       username: (user.email || email).split("@")[0].toLowerCase(),
       bio: "",
@@ -284,16 +260,75 @@ async function login() {
     };
 
     saveState();
-    $("loginMessage").textContent = "लॉगिन सफल!";
     render();
     showPage("profile");
-    toast("लॉगिन सफल!");
+    $("loginMessage").textContent = "लॉगिन सफल!";
   } catch (error) {
-    $("loginMessage").textContent =
-      error.message || "लॉगिन नहीं हो पाया।";
+    $("loginMessage").textContent = error.message;
   }
 }
 
+async function signup() {
+  const name = $("loginName").value.trim();
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  const supabase = window.vibegramSupabase;
+
+  if (!supabase) {
+    $("loginMessage").textContent = "Supabase कनेक्शन नहीं मिला।";
+    return;
+  }
+  if (!name || !email || !password) {
+    $("loginMessage").textContent = "नाम, ईमेल और पासवर्ड भरें।";
+    return;
+  }
+  if (password.length < 6) {
+    $("loginMessage").textContent = "पासवर्ड कम से कम 6 अक्षर का रखें।";
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } }
+    });
+    if (error) throw error;
+
+    if (!data.session) {
+      $("loginMessage").textContent =
+        "अकाउंट बनाने का अनुरोध सफल हुआ। ईमेल पुष्टि करके फिर लॉगिन करें।";
+      return;
+    }
+
+    $("loginMessage").textContent =
+      "अकाउंट बन गया! अब लॉगिन कर सकते हैं।";
+  } catch (error) {
+    $("loginMessage").textContent = error.message;
+  }
+}
+
+async function googleLogin() {
+  const supabase = window.vibegramSupabase;
+
+  if (!supabase) {
+    $("loginMessage").textContent = "Supabase कनेक्शन नहीं मिला।";
+    return;
+  }
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin + "/VibeGram-Pro/"
+    }
+  });
+
+  if (error) {
+    $("loginMessage").textContent = error.message;
+  }
+  }
+  
+  
 async function logout() {
   const supabase = window.vibegramSupabase;
 
