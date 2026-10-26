@@ -808,7 +808,20 @@ function previewSocialPost() {
   area.append(text);
 }
   </script>
-    
+ 
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const SUPABASE_URL = 'https://xlrklvsdidcbcrsiofiv.supabase.co';
+  const SUPABASE_KEY = sb_publishable_WPkYOOo_BV1NALk--6s_ng_48dWVYSh
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  window.vibegramSupabase = supabase;
+
+  console.log('VibeGram Supabase connected');
+</script>
+  
 </body>
 </html>
 <div id="shorts">
